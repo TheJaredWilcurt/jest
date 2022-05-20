@@ -27,13 +27,18 @@ import stripBOM = require('strip-bom');
 import type {
   Jest,
   JestEnvironment,
+  JestImportMeta,
   Module,
   ModuleWrapper,
 } from '@jest/environment';
 import type {LegacyFakeTimers, ModernFakeTimers} from '@jest/fake-timers';
 import type * as JestGlobals from '@jest/globals';
 import type {SourceMapRegistry} from '@jest/source-map';
-import type {RuntimeTransformResult, V8CoverageResult} from '@jest/test-result';
+import type {
+  RuntimeTransformResult,
+  TestContext,
+  V8CoverageResult,
+} from '@jest/test-result';
 import {
   CallerTransformOptions,
   ScriptTransformer,
@@ -57,9 +62,6 @@ import {
   decodePossibleOutsideJestVmPath,
   findSiblingsWithFileExtension,
 } from './helpers';
-import type {Context} from './types';
-
-export type {Context} from './types';
 
 const esmIsAvailable = typeof SourceTextModule === 'function';
 
@@ -117,6 +119,7 @@ type ResolveOptions = Parameters<typeof require.resolve>[1] & {
 
 const testTimeoutSymbol = Symbol.for('TEST_TIMEOUT_SYMBOL');
 const retryTimesSymbol = Symbol.for('RETRY_TIMES');
+const logErrorsBeforeRetrySymbol = Symbol.for('LOG_ERRORS_BEFORE_RETRY');
 
 const NODE_MODULES = `${path.sep}node_modules${path.sep}`;
 
@@ -332,7 +335,7 @@ export default class Runtime {
       watch?: boolean;
       watchman: boolean;
     },
-  ): Promise<Context> {
+  ): Promise<TestContext> {
     createDirectory(config.cacheDirectory);
     const instance = await Runtime.createHasteMap(config, {
       console: options.console,
@@ -498,8 +501,18 @@ export default class Runtime {
 
             return this.linkAndEvaluateModule(module);
           },
-          initializeImportMeta(meta: ImportMeta) {
+          initializeImportMeta: (meta: JestImportMeta) => {
             meta.url = pathToFileURL(modulePath).href;
+
+            let jest = this.jestObjectCaches.get(modulePath);
+
+            if (!jest) {
+              jest = this._createJestObjectFor(modulePath);
+
+              this.jestObjectCaches.set(modulePath, jest);
+            }
+
+            meta.jest = jest;
           },
         });
 
@@ -624,6 +637,7 @@ export default class Runtime {
             return this.linkAndEvaluateModule(module);
           },
           initializeImportMeta(meta: ImportMeta) {
+            // no `jest` here as it's not loaded in a file
             meta.url = specifier;
           },
         });
@@ -2104,8 +2118,11 @@ export default class Runtime {
       return jestObject;
     };
 
-    const retryTimes = (numTestRetries: number) => {
+    const retryTimes: Jest['retryTimes'] = (numTestRetries, options) => {
       this._environment.global[retryTimesSymbol] = numTestRetries;
+      this._environment.global[logErrorsBeforeRetrySymbol] =
+        options?.logErrorsBeforeRetry;
+
       return jestObject;
     };
 

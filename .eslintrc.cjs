@@ -46,6 +46,7 @@ module.exports = {
       rules: {
         '@typescript-eslint/array-type': ['error', {default: 'generic'}],
         '@typescript-eslint/ban-types': 'error',
+        '@typescript-eslint/no-inferrable-types': 'error',
         '@typescript-eslint/no-unused-vars': [
           'error',
           {argsIgnorePattern: '^_'},
@@ -103,8 +104,6 @@ module.exports = {
         'packages/expect-utils/src/utils.ts',
         'packages/jest-core/src/collectHandles.ts',
         'packages/jest-core/src/plugins/UpdateSnapshotsInteractive.ts',
-        'packages/jest-haste-map/src/index.ts',
-        'packages/jest-haste-map/src/watchers/FSEventsWatcher.ts',
         'packages/jest-jasmine2/src/jasmine/SpyStrategy.ts',
         'packages/jest-jasmine2/src/jasmine/Suite.ts',
         'packages/jest-leak-detector/src/index.ts',
@@ -237,10 +236,10 @@ module.exports = {
     },
     {
       files: [
-        'website/**',
-        '**/__tests__/**',
         'e2e/**',
-        '**/pretty-format/perf/**',
+        'website/**',
+        '**/__benchmarks__/**',
+        '**/__tests__/**',
         'packages/jest-types/**/*',
         '.eslintplugin/**',
       ],
@@ -263,6 +262,7 @@ module.exports = {
     {
       files: [
         'scripts/*',
+        'packages/*/__benchmarks__/test.js',
         'packages/jest-cli/src/init/index.ts',
         'packages/jest-repl/src/cli/runtime-cli.ts',
       ],
@@ -274,14 +274,10 @@ module.exports = {
       files: [
         'e2e/**',
         'examples/**',
-        'scripts/*',
         'website/**',
         '**/__mocks__/**',
         '**/__tests__/**',
         '**/__typetests__/**',
-        '**/__performance_tests__/**',
-        'packages/diff-sequences/perf/index.js',
-        'packages/pretty-format/perf/test.js',
       ],
       rules: {
         '@typescript-eslint/no-unused-vars': 'off',
@@ -386,7 +382,7 @@ module.exports = {
     'no-dupe-args': 'error',
     'no-dupe-class-members': 'error',
     'no-dupe-keys': 'error',
-    'no-duplicate-case': 'warn',
+    'no-duplicate-case': 'error',
     'no-else-return': 'off',
     'no-empty': 'off',
     'no-empty-character-class': 'warn',
